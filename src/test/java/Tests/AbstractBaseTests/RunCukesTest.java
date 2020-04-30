@@ -15,13 +15,18 @@
 
 package Tests.AbstractBaseTests;
 
-import cucumber.api.testng.AbstractTestNGCucumberTests;
-
+import cucumber.api.CucumberOptions;
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
 import Pages.NavigationPage;
+import cucumber.api.junit.Cucumber;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.android.AndroidDriver;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.runner.RunWith;
 import org.openqa.selenium.remote.DesiredCapabilities;
-import org.testng.annotations.*;
+import org.testng.annotations.BeforeTest;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -32,73 +37,54 @@ import java.util.concurrent.TimeUnit;
  *
  * Responsible for setting up the Appium test Driver
  */
-public abstract class TestBase extends AbstractTestNGCucumberTests {
-    /**
-     * Make the driver static. This allows it to be created only once
-     * and used across all of the test classes.
-     */
+@RunWith(Cucumber.class)
+@CucumberOptions(
+        monochrome = true,
+        features = {"src/test/resources/LoginTest/LoginTest.feature"},
+        glue = "Tests",
+        plugin = {"pretty"}
+)
+public class RunCukesTest {
+    public static String getName() {
+        return "Login Page";
+    }
+
+    public  static void setUpPage() {
+    }
+    final static String URL_STRING = "http://127.0.0.1:4723/wd/hub";
+    private static NavigationPage navigationPage;
     public static AndroidDriver<MobileElement> driver;
 
-    /**
-     * This allows the navigation to work within the app.
-     * The category name is returned so we can navigate to it from the navigation
-     * drawer.
-     *
-     * @return The name of the Android category
-     */
-    public abstract String getName();
 
-    /**
-     * A page containing the navigation drawer
-     */
-    private NavigationPage navigationPage;
+    @BeforeClass
+    public   static  void setUpAppium() throws MalformedURLException {
 
-    /**
-     * Method to initialize the test's page
-     */
-    @BeforeTest
-    public abstract void setUpPage();
-
-    /**
-     * This method runs before any other method.
-     *
-     * Appium follows a client - server model:
-     * We are setting up our appium client in order to connect to Device Farm's appium server.
-     *
-     * We do not need to and SHOULD NOT set our own DesiredCapabilities
-     * Device Farm creates custom settings at the server level. Setting your own DesiredCapabilities
-     * will result in unexpected results and failures.
-     *
-     * @throws MalformedURLException An exception that occurs when the URL is wrong
-     */
-    @BeforeSuite
-    public void setUpAppium() throws MalformedURLException {
-
-        final String URL_STRING = "http://127.0.0.1:4723/wd/hub";
-
+        System.out.println("in before class");
         URL url = new URL(URL_STRING);
-
         //Use a empty DesiredCapabilities object
         DesiredCapabilities capabilities = new DesiredCapabilities();
-
+       capabilities.setCapability("autoGrantPermissions",true);
         //Set the DesiredCapabilities capabilities only for local development
         capabilities.setCapability("platformName", "Android");
         capabilities.setCapability("deviceName", "Android Emulator");
+        capabilities.setCapability("appPackage", "app-debug.apk");
         capabilities.setCapability("appPackage", "com.amazonaws.devicefarm.android.referenceapp");
         capabilities.setCapability("appActivity", "com.amazonaws.devicefarm.android.referenceapp.Activities.MainActivity");
         capabilities.setCapability("udid", "emulator-5554");
-
         driver = new AndroidDriver<MobileElement>(url, capabilities);
-
         //Use a higher value if your mobile elements take time to show up
-        driver.manage().timeouts().implicitlyWait(35, TimeUnit.SECONDS);
+        driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+        System.out.println("exit before suit"+ driver);
+        navigationPage = new NavigationPage(driver);
+        navigationPage.gotoCategory(getName());
+
     }
 
     /**
      * Always remember to quit
      */
-    @AfterSuite
-    public void tearDownAppium() {
+    @AfterClass
+    public static void  tearDownAppium() {
         driver.quit();
     }
 
@@ -108,18 +94,9 @@ public abstract class TestBase extends AbstractTestNGCucumberTests {
      *  within the navigation drawer
      *
      */
-    @BeforeClass
-    public void navigateTo() throws InterruptedException {
-        navigationPage = new NavigationPage(driver);
-        navigationPage.gotoCategory(getName());
-    }
 
-    /**
-     * Restart the app after every test class to go back to the main
-     * screen and to reset the behavior
-     */
-    @AfterClass
-    public void restartApp() {
-        driver.resetApp();
-    }
+
+
+
+
 }
